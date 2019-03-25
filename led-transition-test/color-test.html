@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>VU Clock Color Test</title>
+
+    <style>
+        .clock {
+            background-color: orangered;
+            display: inline-block;
+            padding: 10px;
+            
+        }
+
+        .led {
+            border: 1px grey solid;
+            width: 100px;
+            height: 100px;
+            background-color: rgb(100, 200, 200);
+            display: inline-block;
+            margin: 10px;
+        }
+    </style>
+  </head>
+  <body> 
+    <h1>VU Clock Color Test</h1>
+
+    <div>
+        <div class="clock">
+            <div class="led" id="l1"></div>
+            <div class="led" id="l2"></div>
+            <div class="led" id="l3"></div>
+        </div>
+    </div>
+    <div>
+        <p>Frame: <span id="frameNumber"></span></p>
+        <p>Hour: <span id="hourNumber"></span></p>
+    </div>
+  </body>
+</html>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+<script>
+    $(function() {
+        var FRAME_LIMIT = 86400.0;
+        var FRAME_STEP = 30;
+        var FRAME_WAIT = 5;
+
+        var nightColor = [39, 29, 147];
+        var sunColor = [239,174,136];
+        var spread = -0.05;
+
+        var intervalID = window.setInterval(loopCallback, FRAME_WAIT);
+        var frame = 0;
+        var frameCounter = $('#frameNumber');
+        var hourCounter = $('#hourNumber');
+
+        function loopCallback() {
+            if (frame > FRAME_LIMIT) {
+                frame = 0;
+            }
+            frameCounter.html(frame);
+            hourCounter.html(Math.floor(frame/60/60));
+
+            var x = frame/FRAME_LIMIT;
+
+            //var r = Math.sin(Math.PI * x-0.5) * (Math.sin(Math.PI * x-0.5));
+            //var g = Math.sin(Math.PI * x) * (Math.sin(Math.PI * x));
+            //var b = Math.sin(Math.PI * x) * (Math.sin(Math.PI * x));
+
+            //console.log(r);
+
+    
+            var x1 = Math.sin(Math.PI * (x-spread)) * Math.sin(Math.PI * (x-spread));
+            var x2 = Math.sin(Math.PI * x) * Math.sin(Math.PI * x);
+            var x3 = Math.sin(Math.PI * (x+spread)) * Math.sin(Math.PI * (x+spread));
+            
+
+            setLedColorRGB(1, interpolateRGB(x1, nightColor, sunColor));
+            setLedColorRGB(2, interpolateRGB(x2, nightColor, sunColor));
+            setLedColorRGB(3, interpolateRGB(x3, nightColor, sunColor));
+            
+
+
+            frame += FRAME_STEP;
+        }
+
+
+    });
+
+    function interpolateRGB(x, rgb0, rgb1) {
+        return [
+            interpolate(x, rgb0[0], rgb1[0]),
+            interpolate(x, rgb0[1], rgb1[1]),
+            interpolate(x, rgb0[2], rgb1[2])
+        ]
+    }
+
+    function interpolate(x, v0, v1) {
+        return Math.round(v0 + (x*(v1-v0)));
+    }
+
+    function setLedColorRGB(ledNumber, rgb) {
+        setLedColor(ledNumber, rgb[0], rgb[1], rgb[2]);
+    }
+
+    function setLedColor(ledNumber, r, g, b) {
+        r = Math.round(r);
+        g = Math.round(g);
+        b = Math.round(b);
+        $("#l"+ledNumber).css('background-color', 'rgb('+r+', '+g+', '+b+')');
+    }
+</script>
