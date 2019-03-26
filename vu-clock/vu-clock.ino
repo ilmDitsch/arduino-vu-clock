@@ -84,11 +84,11 @@ void loop() {
   }
 
   //Update LEDs
-  uint32_t seconds = secondsSinceMidnight(); 
+  uint32_t seconds = secondsSinceMidnight();
 
-  setLedColor(seconds, LED_IDX_HRS, SPREAD);
+  setLedColor(seconds, LED_IDX_HRS, SPREAD * -1.0);
   setLedColor(seconds, LED_IDX_MIN, 0.0);
-  setLedColor(seconds, LED_IDX_SEC, SPREAD * -1.0);
+  setLedColor(seconds, LED_IDX_SEC, SPREAD);
 
   leds.show();
   
@@ -112,6 +112,7 @@ bool updateMeterTime() {
 }
 
 void bootAnimation() {
+  delay(1000);
   
   animateLeds0ToColor();
   
@@ -165,7 +166,7 @@ uint8_t interpolate(float x, uint8_t startValue, uint8_t endValue) {
 }
 
 uint32_t secondsSinceMidnight() {
-  return (tm.Hour*3600) + (tm.Minute*60) + tm.Second; 
+  return ((uint32_t)tm.Hour*3600) + ((uint32_t)tm.Minute*60) + (uint32_t)tm.Second; 
 }
 
 //--- Time Setup ---
