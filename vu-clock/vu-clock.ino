@@ -28,6 +28,18 @@
 #define BTN_IN_PLUS 7
 #define BTN_IN_MINUS 8
 
+#define SECONDS_A_DAY 86400
+
+#define DAY_R 239
+#define DAY_G 174
+#define DAY_B 136
+
+#define NIGHT_R 39
+#define NIGHT_G 29
+#define NIGHT_B 147
+
+#define SPREAD 0.05
+
 tmElements_t tm;
 
 const char *monthName[12] = {
@@ -54,6 +66,7 @@ void setup() {
 }
 
 void loop() {
+  //Update Time Meters
   if (!updateMeterTime()) {
     analogWrite(PWM_OUT_PIN_HRS, map(6, 0, 12, 0, MAX_VALUE_HRS));
     analogWrite(PWM_OUT_PIN_MIN, map(30, 0, 60, 0, MAX_VALUE_MIN));
@@ -67,9 +80,17 @@ void loop() {
       //set LEDs to red?
     }
 
-    delay(10000);
-    
+    delay(10000);    
   }
+
+  //Update LEDs
+  uint32_t seconds = secondsSinceMidnight(); 
+
+  setLedColor(seconds, LED_IDX_HRS, SPREAD);
+  setLedColor(seconds, LED_IDX_MIN, 0.0);
+  setLedColor(seconds, LED_IDX_SEC, SPREAD * -1.0);
+
+  leds.show();
   
   delay(100);
 }
@@ -112,14 +133,39 @@ void animateMeter0ToMax(uint8_t pin, uint8_t maxValue) {
 void animateLeds0ToColor() {
   
   for (uint8_t value = 0; value <= 254; value++) {
-
-    
     leds.setPixelColor(LED_IDX_HRS, leds.Color(map(value,0,255,0,200), map(value,0,255,0,70), map(value,0,255,0,0)));
     leds.setPixelColor(LED_IDX_MIN, leds.Color(map(value,0,255,0,200), map(value,0,255,0,70), map(value,0,255,0,0)));
     leds.setPixelColor(LED_IDX_SEC, leds.Color(map(value,0,255,0,200), map(value,0,255,0,70), map(value,0,255,0,0)));
     leds.show();
     delay(5);
   }
+}
+
+//--- LED DayNight Gradient ---
+
+void setLedColor(uint32_t seconds, uint8_t ledIndex, float offset) {
+  float xRaw = seconds / float(SECONDS_A_DAY);
+  float x = gradientMapping(xRaw, offset);
+
+  uint32_t color = leds.Color(
+      interpolate(x, NIGHT_R, DAY_R),
+      interpolate(x, NIGHT_G, DAY_G),
+      interpolate(x, NIGHT_B, DAY_B)
+  );
+
+  leds.setPixelColor(ledIndex, color);
+}
+
+double gradientMapping(float x, float offset) {
+  return sq(sin(PI*(x+offset)));
+}
+
+uint8_t interpolate(float x, uint8_t startValue, uint8_t endValue) {
+  return round(startValue + (x*(endValue-startValue)));
+}
+
+uint32_t secondsSinceMidnight() {
+  return (tm.Hour*3600) + (tm.Minute*60) + tm.Second; 
 }
 
 //--- Time Setup ---
