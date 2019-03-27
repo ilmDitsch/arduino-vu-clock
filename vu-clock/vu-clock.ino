@@ -105,7 +105,7 @@ bool updateMeterTime() {
 
   if (RTC.read(tm)) {
 
-    writeoutTime();
+    writeoutTime(true);
 
     return true;
   } else {
@@ -113,12 +113,42 @@ bool updateMeterTime() {
   }
 }
 
-void writeoutTime() {
-  int8_t h = (tm.Hour == 12) ? 12 : tm.Hour % 12;
+bool shouldAnimateHours = false;
+bool shouldAnimateMinutes = false;
+bool shouldAnimateSeconds = false;
 
-  analogWrite(PWM_OUT_PIN_HRS, map(h, 0, 12, 0, MAX_VALUE_HRS));
-  analogWrite(PWM_OUT_PIN_MIN, map(tm.Minute, 0, 60, 0, MAX_VALUE_MIN));
-  analogWrite(PWM_OUT_PIN_SEC, map(tm.Second, 0, 60, 0, MAX_VALUE_SEC));
+void writeoutTime(bool animated) {
+  int8_t h = (tm.Hour == 12) ? 12 : tm.Hour % 12;
+  
+  if (animated && h == 0) {
+    if (shouldAnimateHours) {
+      shouldAnimateHours = false;
+      animateMeterMaxTo0(PWM_OUT_PIN_HRS, MAX_VALUE_HRS);
+    }
+  } else {
+    analogWrite(PWM_OUT_PIN_HRS, map(h, 0, 12, 0, MAX_VALUE_HRS));
+    shouldAnimateHours = true;
+  }
+
+  if (animated && tm.Minute == 0) {
+    if (shouldAnimateMinutes) {
+      shouldAnimateMinutes = false;
+      animateMeterMaxTo0(PWM_OUT_PIN_MIN, MAX_VALUE_MIN);
+    }
+  } else {
+    analogWrite(PWM_OUT_PIN_MIN, map(tm.Minute, 0, 60, 0, MAX_VALUE_MIN));
+    shouldAnimateMinutes = true;
+  }
+  
+  if (animated && tm.Second == 0) {
+    if (shouldAnimateSeconds) {
+      shouldAnimateSeconds = false;
+      animateMeterMaxTo0(PWM_OUT_PIN_SEC, MAX_VALUE_SEC);
+    }
+  } else {
+    analogWrite(PWM_OUT_PIN_SEC, map(tm.Second, 0, 60, 0, MAX_VALUE_SEC));
+    shouldAnimateSeconds = true;
+  }
 }
 
 void bootAnimation() {
@@ -137,6 +167,13 @@ void animateMeter0ToMax(uint8_t pin, uint8_t maxValue) {
   for (uint8_t value = 0; value <= maxValue; value++) {
     analogWrite(pin, value);
     delay(3);
+  }
+}
+
+void animateMeterMaxTo0(uint8_t pin, uint8_t maxValue) {
+  for (uint8_t value = maxValue; value > 0; value--) {
+    analogWrite(pin, value);
+    delay(2);
   }
 }
 
@@ -234,7 +271,7 @@ void checkButtons() {
       RTC.write(tm);
     }
     
-    writeoutTime();
+    writeoutTime(false);
     leds.show();
     
     delay(500);
