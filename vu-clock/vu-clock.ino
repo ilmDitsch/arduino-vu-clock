@@ -25,8 +25,8 @@
 #define LED_IDX_MIN 1
 #define LED_IDX_SEC 2
 
-#define BTN_IN_PLUS 7
-#define BTN_IN_MINUS 8
+#define BTN_IN_MINUS 7
+#define BTN_IN_PLUS 8
 
 #define SECONDS_A_DAY 86400
 
@@ -54,18 +54,24 @@ void setup() {
   pinMode(BTN_IN_MINUS, INPUT_PULLUP);
 
   //Use these lines to calibrate MAX_VALUES
-  //analogWrite(PWM_OUT_PIN_HRS, map(12, 0, 12, 0, MAX_VALUE_HRS));
-  //analogWrite(PWM_OUT_PIN_MIN, map(60, 0, 60, 0, MAX_VALUE_MIN));
-  //analogWrite(PWM_OUT_PIN_SEC, map(60, 0, 60, 0, MAX_VALUE_SEC));
+  /*
+  analogWrite(PWM_OUT_PIN_HRS, map(12, 0, 12, 0, MAX_VALUE_HRS));
+  analogWrite(PWM_OUT_PIN_MIN, map(60, 0, 60, 0, MAX_VALUE_MIN));
+  analogWrite(PWM_OUT_PIN_SEC, map(60, 0, 60, 0, MAX_VALUE_SEC));
+  delay(100000);
+  */
 
   leds.begin();
-  leds.setBrightness(100);
+  leds.setBrightness(75);
   leds.show(); // Initialize all leds to 'off'
   
   bootAnimation();
 }
 
 void loop() {
+  //Buttons pressed?
+  checkButtons();
+  
   //Update Time Meters
   if (!updateMeterTime()) {
     analogWrite(PWM_OUT_PIN_HRS, map(6, 0, 12, 0, MAX_VALUE_HRS));
@@ -91,7 +97,7 @@ void loop() {
   setLedColor(seconds, LED_IDX_SEC, SPREAD);
 
   leds.show();
-  
+
   delay(100);
 }
 
@@ -99,16 +105,20 @@ bool updateMeterTime() {
 
   if (RTC.read(tm)) {
 
-    int8_t h = (tm.Hour == 12) ? 12 : tm.Hour % 12;
-
-    analogWrite(PWM_OUT_PIN_HRS, map(h, 0, 12, 0, MAX_VALUE_HRS));
-    analogWrite(PWM_OUT_PIN_MIN, map(tm.Minute, 0, 60, 0, MAX_VALUE_MIN));
-    analogWrite(PWM_OUT_PIN_SEC, map(tm.Second, 0, 60, 0, MAX_VALUE_SEC));
+    writeoutTime();
 
     return true;
   } else {
     return false;
   }
+}
+
+void writeoutTime() {
+  int8_t h = (tm.Hour == 12) ? 12 : tm.Hour % 12;
+
+  analogWrite(PWM_OUT_PIN_HRS, map(h, 0, 12, 0, MAX_VALUE_HRS));
+  analogWrite(PWM_OUT_PIN_MIN, map(tm.Minute, 0, 60, 0, MAX_VALUE_MIN));
+  analogWrite(PWM_OUT_PIN_SEC, map(tm.Second, 0, 60, 0, MAX_VALUE_SEC));
 }
 
 void bootAnimation() {
@@ -167,6 +177,67 @@ uint8_t interpolate(float x, uint8_t startValue, uint8_t endValue) {
 
 uint32_t secondsSinceMidnight() {
   return ((uint32_t)tm.Hour*3600) + ((uint32_t)tm.Minute*60) + (uint32_t)tm.Second; 
+}
+
+//--- Buttons ---
+
+void checkButtons() {
+  int btnPlus = digitalRead(BTN_IN_PLUS);
+  int btnMinus = digitalRead(BTN_IN_MINUS);
+
+  bool waiting = true;
+ 
+  while (btnPlus == LOW || btnMinus == LOW) { //LOW == Button pressed
+
+    if (waiting) {
+      uint32_t waitColor = leds.Color(255, 255, 0);
+    
+      leds.setPixelColor(LED_IDX_HRS, waitColor);
+      leds.setPixelColor(LED_IDX_MIN, waitColor);
+      leds.setPixelColor(LED_IDX_SEC, waitColor);
+
+      waiting = false;
+    } else {
+      //changing time
+      if (btnPlus == LOW) {
+        uint32_t plusColor = leds.Color(0, 255, 0);
+    
+        leds.setPixelColor(LED_IDX_HRS, plusColor);
+        leds.setPixelColor(LED_IDX_MIN, plusColor);
+        leds.setPixelColor(LED_IDX_SEC, plusColor);
+
+        if (tm.Minute < 59) {
+          tm.Minute++;
+        } else if (tm.Hour < 23) {
+          tm.Hour++;
+          tm.Minute = 0;
+        }
+       
+      } else if (btnMinus == LOW) {
+        uint32_t minusColor = leds.Color(255, 0, 0);
+    
+        leds.setPixelColor(LED_IDX_HRS, minusColor);
+        leds.setPixelColor(LED_IDX_MIN, minusColor);
+        leds.setPixelColor(LED_IDX_SEC, minusColor);
+
+        if (tm.Minute > 0) {
+          tm.Minute--;
+        } else if (tm.Hour > 0) {
+          tm.Hour--;
+          tm.Minute = 59;
+        }
+      }
+      RTC.write(tm);
+    }
+    
+    writeoutTime();
+    leds.show();
+    
+    delay(500);
+    
+    btnPlus = digitalRead(BTN_IN_PLUS);
+    btnMinus = digitalRead(BTN_IN_MINUS);
+  }
 }
 
 //--- Time Setup ---
