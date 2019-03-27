@@ -14,9 +14,9 @@
 #define PWM_OUT_PIN_MIN 5
 #define PWM_OUT_PIN_SEC 6
 
-#define MAX_VALUE_HRS 235
-#define MAX_VALUE_MIN 240
-#define MAX_VALUE_SEC 237
+#define MAX_VALUE_HRS 232
+#define MAX_VALUE_MIN 237
+#define MAX_VALUE_SEC 238
 
 #define LED_OUT_PIN 2
 #define LED_COUNT 3
@@ -212,6 +212,8 @@ void checkButtons() {
           tm.Hour++;
           tm.Minute = 0;
         }
+
+        leds.setPixelColor((tm.Minute%3), leds.Color(70, 255, 127));
        
       } else if (btnMinus == LOW) {
         uint32_t minusColor = leds.Color(255, 0, 0);
@@ -226,6 +228,8 @@ void checkButtons() {
           tm.Hour--;
           tm.Minute = 59;
         }
+
+        leds.setPixelColor((tm.Minute%3), leds.Color(255, 127, 70));
       }
       RTC.write(tm);
     }
